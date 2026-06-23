@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Models
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  fullName  String
+  role      Role     @default(TEACHER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  classes   Class[]
+  feedbacks Feedback[]
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  teacherId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  students  Student[]
+  feedbacks Feedback[]
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  feedbacks Feedback[]
+  attendance Attendance[]
+
+  @@unique([email, classId])
+}
+
+model Feedback {
+  id              String   @id @default(cuid())
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       String
+  class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId         String
+  teacher         User     @relation(fields: [teacherId], references: [id])
+  teacherId       String
+  feedbackDate    DateTime @default(now())
+  
+  // Skills assessment
+  speaking        String?  // Good, Average, Needs Improvement
+  listening       String?
+  reading         String?
+  writing         String?
+  vocabulary      String?
+  grammar         String?
+  behaviour       String?
+  homework        String?
+  participation   String?
+  
+  // Custom feedback
+  customComment   String?
+  aiGenerated     Boolean  @default(false)
+  
+  // Language
+  language        String   @default("en") // en, vi
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  TEACHER
+  ADMIN
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  MAKEUP
+}
